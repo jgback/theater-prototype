@@ -1,0 +1,247 @@
+import streamlit as st
+import qrcode
+from io import BytesIO
+from PIL import Image
+
+# Set page title
+st.set_page_config(page_title="Theater Membership & Booking", page_icon="🎭")
+
+# Ensure session state has a default step
+if "step" not in st.session_state:
+    st.session_state["step"] = "membership"
+
+# ---- Membership Signup Section ----
+if st.session_state["step"] == "membership":
+    st.title("🎭 Theater Membership Signup")
+    st.subheader("Join today and start enjoying exclusive theater benefits!")
+
+    st.write("### Choose Your Membership Level")
+
+    # Membership Options (Tracking Show Limits)
+    membership_options = {
+        "Base Membership": {
+            "price": "$99/year",
+            "shows_allowed": 3,
+            "perks": ["✔ Discounted extra tickets", "✔ Early booking access"]
+        },
+        "Premium Membership": {
+            "price": "$199/year",
+            "shows_allowed": 6,
+            "perks": ["✔ Priority seating", "✔ Free concession per show", "✔ Bring a guest once per season"]
+        }
+    }
+
+    # Display Membership Options in Columns
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("### 🎟️ Base Membership")
+        st.write(f"💰 **{membership_options['Base Membership']['price']}**")
+        st.write(f"🎭 **Includes:** {membership_options['Base Membership']['shows_allowed']} shows")
+        st.write("### Perks:")
+        for perk in membership_options["Base Membership"]["perks"]:
+            st.write(perk)
+        base_selected = st.button("Choose Base Membership")
+
+    with col2:
+        st.write("### ⭐ Premium Membership")
+        st.write(f"💰 **{membership_options['Premium Membership']['price']}**")
+        st.write(f"🎭 **Includes:** {membership_options['Premium Membership']['shows_allowed']} shows")
+        st.write("### Perks:")
+        for perk in membership_options["Premium Membership"]["perks"]:
+            st.write(perk)
+        premium_selected = st.button("Choose Premium Membership")
+
+    if base_selected:
+        st.session_state["membership"] = "Base Membership"
+        st.session_state["shows_remaining"] = membership_options["Base Membership"]["shows_allowed"]
+        st.session_state["step"] = "theater_selection"
+        st.rerun()
+
+    elif premium_selected:
+        st.session_state["membership"] = "Premium Membership"
+        st.session_state["shows_remaining"] = membership_options["Premium Membership"]["shows_allowed"]
+        st.session_state["step"] = "theater_selection"
+        st.rerun()
+
+# ---- Theater Selection Section ----
+elif st.session_state["step"] == "theater_selection":
+    st.title("🎭 Select Your Home Theater")
+    st.subheader("Choose one theater as your home base for membership perks.")
+
+    lort_theaters = {
+        "Guthrie Theater": {"location": "Minneapolis, MN", "description": "Renowned regional theater with iconic productions."},
+        "Steppenwolf Theatre": {"location": "Chicago, IL", "description": "Famous for cutting-edge contemporary plays."},
+        "Berkeley Rep": {"location": "Berkeley, CA", "description": "Known for launching Broadway-bound shows."}
+    }
+
+    selected_theater = st.radio("Select your home theater:", list(lort_theaters.keys()), index=None)
+
+    for theater, details in lort_theaters.items():
+        st.markdown(f"### 🎭 {theater} {'✅' if selected_theater == theater else ''}")
+        st.write(f"📍 {details['location']}")
+        st.write(f"📝 {details['description']}")
+        st.write("---")
+
+    if selected_theater and st.button("Continue"):
+        st.session_state["home_theater"] = selected_theater
+        st.session_state["step"] = "show_discovery"
+        st.rerun()
+
+# ---- Show Discovery Section ----
+elif st.session_state["step"] == "show_discovery":
+    st.title(f"🎭 Shows at {st.session_state['home_theater']}")
+    st.subheader(f"Shows remaining in membership: {st.session_state['shows_remaining']}")
+
+    sample_shows = {
+        "Guthrie Theater": [
+            {"title": "Hamlet", "genre": "Drama", "date": "2025-03-10", "time": "7:00 PM"},
+            {"title": "The Lion King", "genre": "Musical", "date": "2025-03-15", "time": "6:30 PM"},
+        ],
+        "Steppenwolf Theatre": [
+            {"title": "True West", "genre": "Drama", "date": "2025-03-12", "time": "7:30 PM"},
+            {"title": "The Comedy of Errors", "genre": "Comedy", "date": "2025-03-18", "time": "8:00 PM"},
+        ],
+        "Berkeley Rep": [
+            {"title": "Hadestown", "genre": "Musical", "date": "2025-03-14", "time": "7:00 PM"},
+            {"title": "A Midsummer Night’s Dream", "genre": "Comedy", "date": "2025-03-20", "time": "6:30 PM"},
+        ]
+    }
+
+
+    theater_shows = sample_shows.get(st.session_state["home_theater"], [])
+
+    for show in theater_shows:
+        col1, col2 = st.columns([0.8, 0.2])
+        with col1:
+            st.write(f"### 🎭 {show['title']}")
+            st.write(f"🕰 **{show['date']} at {show['time']}**")
+            st.write(f"🎭 **Genre:** {show['genre']}")
+        with col2:
+            if st.session_state["shows_remaining"] > 0:
+                if st.button(f"Book '{show['title']}'", key=show["title"]):
+                    st.session_state["booked_show"] = show
+                    st.session_state["shows_remaining"] -= 1
+                    st.session_state["step"] = "perk_selection"
+                    st.rerun()
+
+# ---- Perks Selection Section ----
+elif st.session_state["step"] == "perk_selection":
+    st.title("🍿 Add Perks to Your Booking")
+
+    show = st.session_state.get("booked_show", {})
+
+    snack = st.checkbox("🍿 Add Popcorn ($5)")
+    drink = st.checkbox("🥤 Add Drink ($4)")
+    parking = st.checkbox("🚗 Reserve Parking ($10)")
+
+    if st.button("Confirm Booking"):
+        st.session_state["perks"] = {"snack": snack, "drink": drink, "parking": parking}
+        st.session_state["step"] = "booking_confirmation"
+        st.rerun()
+
+# ---- Booking Confirmation Section ----
+elif st.session_state["step"] == "booking_confirmation":
+    st.title("🎟️ Booking Confirmation")
+
+    show = st.session_state.get("booked_show", {})
+    perks = st.session_state.get("perks", {})
+
+    st.success(f"✅ You have successfully booked **{show.get('title', '')}**!")
+    st.write("### 🎟️ Perks Included:")
+    if perks.get("snack"): st.write("🍿 Popcorn")
+    if perks.get("drink"): st.write("🥤 Drink")
+    if perks.get("parking"): st.write("🚗 Parking")
+
+    if st.button("Go to Event Home"):
+        st.session_state["step"] = "event_home"
+        st.rerun()
+
+
+# ---- Event Home Page (With QR Codes, Fixed Warning) ----
+elif st.session_state["step"] == "event_home":
+    st.title("🏛 Event Home Page")
+
+    show = st.session_state.get("booked_show", {})
+    perks = st.session_state.get("perks", {})
+
+    st.write(f"### 🎭 {show.get('title', '')}")
+    st.write(f"📅 **Date:** {show.get('date', '')} | ⏰ **Time:** {show.get('time', '')}")
+    st.write(f"🏛 **Venue:** {st.session_state['home_theater']}")
+
+    # Generate a QR code for the ticket
+    ticket_data = f"Ticket for {show.get('title', '')} at {show.get('time', '')} on {show.get('date', '')}"
+    qr = qrcode.make(ticket_data)
+    qr_bytes = BytesIO()
+    qr.save(qr_bytes, format="PNG")
+
+    st.write("### 🎟️ Your Ticket QR Code:")
+    st.image(qr_bytes.getvalue(), caption="Scan this for event entry", use_container_width=False)
+
+    # Perks Section
+    st.write("### 🎟️ Your Perks:")
+    perk_codes = []
+    if perks.get("snack"):
+        perk_codes.append("🍿 Popcorn ✅")
+    if perks.get("drink"):
+        perk_codes.append("🥤 Drink ✅")
+    if perks.get("parking"):
+        perk_codes.append("🚗 Parking ✅")
+
+    if not perk_codes:
+        st.write("❌ No perks selected.")
+    else:
+        for perk in perk_codes:
+            st.write(perk)
+
+    # Generate QR Codes for Perks
+    st.write("### 📱 QR Codes for Perks:")
+    for perk in perk_codes:
+        perk_qr = qrcode.make(perk)
+        perk_qr_bytes = BytesIO()
+        perk_qr.save(perk_qr_bytes, format="PNG")
+        st.image(perk_qr_bytes.getvalue(), caption=f"Scan for {perk}", use_container_width=False)
+
+    st.write("### Modify Your Perks:")
+    snack = st.checkbox("🍿 Add/Remove Popcorn ($5)", value=perks.get("snack", False))
+    drink = st.checkbox("🥤 Add/Remove Drink ($4)", value=perks.get("drink", False))
+    parking = st.checkbox("🚗 Add/Remove Parking ($10)", value=perks.get("parking", False))
+
+    if st.button("Update Perks"):
+        st.session_state["perks"] = {"snack": snack, "drink": drink, "parking": parking}
+        st.success("✅ Your perks have been updated!")
+        st.rerun()
+    if st.button("Go to My Account"):
+        st.session_state["step"] = "account_dashboard"
+        st.rerun()
+
+# ---- Account Dashboard ----
+elif st.session_state["step"] == "account_dashboard":
+    st.title("👤 My Account Dashboard")
+
+    st.subheader("📅 Upcoming Events")
+    if "booked_show" in st.session_state:
+        show = st.session_state["booked_show"]
+        st.write(f"🎭 **{show.get('title', '')}** - {show.get('date', '')} at {show.get('time', '')}")
+        if st.button("View Event Details"):
+            st.session_state["step"] = "event_home"
+            st.rerun()
+    else:
+        st.write("❌ No events booked yet.")
+
+    st.subheader("🎟️ Membership Status")
+    st.write(f"🏛 **Home Theater:** {st.session_state.get('home_theater', 'Not Selected')}")
+    st.write(f"🎭 **Shows Remaining:** {st.session_state.get('shows_remaining', 0)}")
+
+    st.subheader("🎭 Suggested Events")
+    suggested_events = [
+        {"title": "Les Misérables", "theater": "Guthrie Theater", "date": "2025-04-10"},
+        {"title": "Wicked", "theater": "Steppenwolf Theatre", "date": "2025-04-15"},
+    ]
+    
+    for event in suggested_events:
+        st.write(f"🎭 **{event['title']}** at **{event['theater']}** - {event['date']}")
+    
+    if st.button("Back to Event Home"):
+        st.session_state["step"] = "event_home"
+        st.rerun()
