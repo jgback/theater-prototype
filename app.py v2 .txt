@@ -90,19 +90,9 @@ elif st.session_state["step"] == "theater_selection":
 elif st.session_state["step"] == "account_dashboard":
     st.title("👤 My Account Dashboard")
 
-    # Ensure existing users have necessary session state variables
-    if "membership" not in st.session_state:
-        st.session_state["membership"] = "Base Membership"  # Default to Base Membership
-        st.session_state["shows_remaining"] = 3  # Default to 3 shows for Base
-    if "home_theater" not in st.session_state:
-        st.session_state["home_theater"] = "Guthrie Theater"  # Default Home Theater
-
-    if st.session_state["membership"] == "Premium Membership":
-        st.session_state["shows_remaining"] = 6  # Premium users get 6 shows
-
     st.subheader("📅 Upcoming Events")
     if "booked_shows" not in st.session_state:
-        st.session_state["booked_shows"] = []
+        st.session_state["booked_shows"] = []  # Initialize booked shows list
 
     if st.session_state["booked_shows"]:
         for show in st.session_state["booked_shows"]:
@@ -114,7 +104,7 @@ elif st.session_state["step"] == "account_dashboard":
         st.warning("❌ No events booked yet.")
 
     st.subheader("🎭 Browse & Book More Shows")
-    if st.button(f"Find Shows at {st.session_state['home_theater']}"):
+    if st.button("Find Shows at Home Theater"):
         st.session_state["step"] = "show_discovery"
         st.session_state["show_filter"] = "home"
         st.rerun()
@@ -132,7 +122,7 @@ elif st.session_state["step"] == "account_dashboard":
         st.session_state.clear()
         st.session_state["step"] = "welcome"
         st.rerun()
-        
+
 # ---- Show Discovery ----
 elif st.session_state["step"] == "show_discovery":
     show_filter = st.session_state.get("show_filter", "home")
